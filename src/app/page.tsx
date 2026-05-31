@@ -36,7 +36,6 @@ export default function Home() {
     issueDate: "",
     managerName: "",
   });
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [certId, setCertId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -108,6 +107,8 @@ export default function Home() {
     sealText: "مُعتمد",
     sealSubText: "منصة خبرات",
     sealColor: "#16a34a",
+    sealImage: "", // Base64 image
+    logoImage: "", // Base64 image
     // QR
     qrColor: "#15803d",
     qrSize: 70,
@@ -142,13 +143,18 @@ export default function Home() {
     setDesign({ ...design, [key]: value });
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, propKey: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoUrl(url);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setDesign({ ...design, [propKey]: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
+
+
 
   const addExtraField = () => {
     setExtraFields([...extraFields, { id: Date.now().toString(), label: "حقل جديد", value: "" }]);
@@ -421,7 +427,7 @@ export default function Home() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">شعار الجهة (اختياري)</label>
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:cursor-pointer cursor-pointer file:bg-green-600 file:text-white hover:file:bg-green-700" />
+                  <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "logoImage")} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:cursor-pointer cursor-pointer file:bg-green-600 file:text-white hover:file:bg-green-700" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">اسم الجهة / الشركة</label>
@@ -582,6 +588,21 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Images Section */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">🖼️ الصور والشعارات</h3>
+                  <div className="space-y-3 p-3 rounded-xl" style={{ backgroundColor: "#f9fafb" }}>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">شعار الجهة (Logo)</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "logoImage")} className="w-full text-xs" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">صورة الختم (Seal)</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "sealImage")} className="w-full text-xs" />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Spacing Section */}
                 <div>
                   <h3 className="text-sm font-bold text-gray-800 mb-3">📐 المسافات</h3>
@@ -656,8 +677,8 @@ export default function Home() {
                       <p style={{ color: design.subtitleColor, fontSize: "13px", marginTop: "4px" }}>{design.certSubtitle}</p>
                     </div>
                     {design.showLogo && (
-                      logoUrl ? (
-                        <img src={logoUrl} alt="Logo" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
+                      design.logoImage ? (
+                        <img src={design.logoImage} alt="Logo" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
                       ) : (
                         <div style={{ height: "70px", width: "70px", border: "2px dashed #d1d5db", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: "10px", borderRadius: "8px", textAlign: "center" }}>شعار<br />الجهة</div>
                       )
@@ -734,7 +755,14 @@ export default function Home() {
                     )}
                     {design.showSeal && (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "80px", height: "80px" }}>
-                        <p style={{ fontSize: "14px", color: design.subtitleColor, fontWeight: "bold" }}>ختم :</p>
+                        {design.sealImage ? (
+                          <img src={design.sealImage} alt="Seal" style={{ height: "100%", width: "100%", objectFit: "contain" }} />
+                        ) : (
+                          <>
+                            <p style={{ fontSize: "14px", color: design.subtitleColor, fontWeight: "bold" }}>{design.sealText || "ختم"}</p>
+                            {design.sealSubText && <p style={{ fontSize: "10px", color: design.subtitleColor, marginTop: "2px" }}>{design.sealSubText}</p>}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
