@@ -8,6 +8,7 @@ import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shie
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import toast from "react-hot-toast";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -149,7 +150,7 @@ export default function Dashboard() {
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
           console.error("Error updating certificate status:", err);
-          alert("حدث خطأ أثناء تعديل حالة الشهادة.");
+          toast.error("حدث خطأ أثناء تحديث حالة الشهادة.");
         }
       }
     });
@@ -168,7 +169,7 @@ export default function Dashboard() {
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
           console.error("Error deleting certificate:", err);
-          alert("حدث خطأ أثناء حذف الشهادة.");
+          toast.error("حدث خطأ أثناء حذف الشهادة.");
         }
       }
     });

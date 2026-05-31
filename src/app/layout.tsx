@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -9,8 +10,8 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "منصة خبرات | لإصدار شهادات الخبرة الموثقة",
-  description: "منصة لإصدار شهادات الخبرة الموثقة بسهولة للموظفين الموسميين والشركات.",
+  title: "منصة خبرات | لإصدار وتوثيق شهادات الخبرة",
+  description: "أداة احترافية لإصدار شهادات الخبرة وتوثيقها بباركود لضمان المصداقية.",
 };
 
 export default function RootLayout({
@@ -21,6 +22,22 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${tajawal.variable} font-sans bg-gray-50 text-gray-900 antialiased`}>
+        <Toaster 
+          position="top-center" 
+          toastOptions={{
+            style: {
+              fontFamily: 'var(--font-tajawal)',
+              direction: 'rtl',
+              fontWeight: 500,
+            },
+            success: {
+              iconTheme: {
+                primary: '#16a34a',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         {children}
       </body>
     </html>

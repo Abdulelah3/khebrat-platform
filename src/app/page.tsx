@@ -10,6 +10,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 type TabType = "data" | "design";
 
@@ -199,10 +200,10 @@ export default function Home() {
       });
       setCertId(newCertId);
       setIsAuthenticated(true);
-      alert(`تم توثيق الشهادة وحفظها بقاعدة البيانات بنجاح!\nرقم الاعتماد: ${newCertId}`);
+      toast.success(`تم توثيق الشهادة بنجاح!\nرقم الاعتماد: ${newCertId}`);
     } catch (e) {
       console.error("Firebase save error:", e);
-      alert("فشل توثيق الشهادة، تأكد من إعدادات قاعدة البيانات في Firebase.");
+      toast.error("حدث خطأ أثناء التوثيق! تأكد من اتصالك.");
     } finally {
       setIsAuthenticating(false);
     }
@@ -214,7 +215,7 @@ export default function Home() {
       return;
     }
     if (!formData.employeeName || !formData.jobTitle) {
-      alert("الرجاء تعبئة الاسم والمسمى الوظيفي على الأقل.");
+      toast.error("يرجى تعبئة اسم الموظف والمسمى الوظيفي على الأقل.");
       return;
     }
 
@@ -248,7 +249,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error generating certificate:", error);
-      alert("حدث خطأ أثناء توليد الشهادة. حاول مرة أخرى.");
+      toast.error("حدث خطأ أثناء توليد الشهادة. حاول مرة أخرى.");
     } finally {
       setIsGenerating(false);
     }
