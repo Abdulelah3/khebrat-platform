@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
+  const [selectedCerts, setSelectedCerts] = useState<string[]>([]);
   
   // Admin only states
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -175,6 +176,46 @@ export default function Dashboard() {
     });
   };
 
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedCerts(certificates.map(c => c.id));
+    } else {
+      setSelectedCerts([]);
+    }
+  };
+
+  const handleSelect = (id: string) => {
+    setSelectedCerts(prev => 
+      prev.includes(id) ? prev.filter(certId => certId !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCerts.length === 0) return;
+    
+    setConfirmModal({
+      isOpen: true,
+      title: "حذف الشهادات المحددة",
+      message: `هل أنت متأكد من حذف ${selectedCerts.length} شهادة نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.`,
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          const deletePromises = selectedCerts.map(id => deleteDoc(doc(db, "certificates", id)));
+          await Promise.all(deletePromises);
+          
+          setCertificates(certs => certs.filter(c => !selectedCerts.includes(c.id)));
+          setSelectedCerts([]);
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          toast.success("تم حذف الشهادات المحددة بنجاح");
+        } catch (err) {
+          console.error("Error deleting certificates:", err);
+          toast.error("حدث خطأ أثناء حذف الشهادات.");
+        }
+      }
+    });
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50" dir="rtl">
@@ -277,13 +318,23 @@ export default function Dashboard() {
 
         {/* Certificates Table */}
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
             <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-green-600" />
               {isAdmin ? "سجل جميع الشهادات" : "سجل الشهادات الصادرة"}
             </h2>
-            <div className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold">
-              الإجمالي: {certificates.length}
+            <div className="flex items-center gap-4">
+              {selectedCerts.length > 0 && (
+                <button 
+                  onClick={handleBulkDelete}
+                  className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> حذف المحدد ({selectedCerts.length})
+                </button>
+              )}
+              <div className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold">
+                الإجمالي: {certificates.length}
+              </div>
             </div>
           </div>
           
@@ -291,6 +342,14 @@ export default function Dashboard() {
             <table className="w-full text-center">
               <thead className="bg-slate-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-4 w-10 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+                      checked={certificates.length > 0 && selectedCerts.length === certificates.length}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">رقم الاعتماد</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">اسم الموظف</th>
                   {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">الشركة المصدرة</th>}
@@ -302,6 +361,14 @@ export default function Dashboard() {
               <tbody className="divide-y divide-gray-100">
                 {certificates.map((cert) => (
                   <tr key={cert.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+                        checked={selectedCerts.includes(cert.id)}
+                        onChange={() => handleSelect(cert.id)}
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">{cert.certId}</span>
                     </td>
@@ -352,7 +419,7 @@ export default function Dashboard() {
                 
                 {certificates.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={isAdmin ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
                       لا يوجد شهادات مصدرة حتى الآن.
                     </td>
                   </tr>
