@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck } from "lucide-react";
+import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck, Eye } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -330,6 +330,14 @@ export default function Dashboard() {
                         >
                           {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
                         </button>
+                        <Link 
+                          href={`/certificate/${cert.id}`}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="معاينة الشهادة"
+                          target="_blank"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </Link>
                         <button 
                           onClick={() => handleDelete(cert.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"

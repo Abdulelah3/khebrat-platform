@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard } from "lucide-react";
+import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
@@ -30,6 +30,7 @@ export default function Home() {
   const [formData, setFormData] = useState({
     companyName: "",
     employeeName: "",
+    employeeEmail: "",
     employeeId: "",
     jobTitle: "",
     startDate: "",
@@ -201,6 +202,32 @@ export default function Home() {
       setCertId(newCertId);
       setIsAuthenticated(true);
       toast.success(`تم توثيق الشهادة بنجاح!\nرقم الاعتماد: ${newCertId}`);
+
+      if (formData.employeeEmail) {
+        try {
+          toast.loading("جاري إرسال الإيميل...", { id: "email-toast" });
+          const res = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: formData.employeeEmail,
+              employeeName: formData.employeeName,
+              companyName: formData.companyName || user?.companyName || "الشركة",
+              certId: newCertId,
+              url: `${window.location.origin}/certificate/${newCertId}`
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            toast.success("تم إرسال الشهادة بالإيميل للموظف بنجاح! 📧", { id: "email-toast" });
+          } else {
+            toast.error(data.error || "حدث خطأ في إرسال الإيميل", { id: "email-toast" });
+          }
+        } catch (emailErr) {
+          console.error("Error sending email:", emailErr);
+          toast.error("فشل إرسال الإيميل.", { id: "email-toast" });
+        }
+      }
     } catch (e) {
       console.error("Firebase save error:", e);
       toast.error("حدث خطأ أثناء التوثيق! تأكد من اتصالك.");
@@ -447,6 +474,13 @@ export default function Home() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهوية / الإقامة</label>
                   <input type="text" name="employeeId" value={formData.employeeId} onChange={handleInputChange} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="1000000000" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني (اختياري)</label>
+                  <div className="relative">
+                    <Mail className="w-5 h-5 absolute right-3 top-2.5 text-gray-400" />
+                    <input type="email" name="employeeEmail" value={formData.employeeEmail} onChange={handleInputChange} className="w-full pl-3 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="employee@example.com" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">المسمى الوظيفي</label>
