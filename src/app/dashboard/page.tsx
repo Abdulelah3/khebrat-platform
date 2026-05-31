@@ -4,9 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building } from "lucide-react";
+import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -20,6 +20,20 @@ export default function Dashboard() {
     totalCerts: 0,
     activeCerts: 0,
     totalCompanies: 0
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "danger" | "warning";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "warning",
+    onConfirm: () => {}
   });
 
   const router = useRouter();
@@ -101,37 +115,47 @@ export default function Dashboard() {
     router.push("/auth");
   };
 
-  const handleRevoke = async (docId: string, currentStatus: string) => {
+  const handleRevoke = (docId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "revoked" : "active";
-    const confirmMessage = newStatus === "revoked" ? "هل أنت متأكد من إبطال هذه الشهادة؟ لن تكون صالحة عند التحقق." : "هل أنت متأكد من إعادة تفعيل الشهادة؟";
+    const isRevoking = newStatus === "revoked";
     
-    if (confirm(confirmMessage)) {
-      try {
-        await updateDoc(doc(db, "certificates", docId), {
-          status: newStatus
-        });
-        
-        // Update local state
-        setCertificates(certs => certs.map(c => 
-          c.id === docId ? { ...c, status: newStatus } : c
-        ));
-      } catch (err) {
-        console.error("Error updating certificate status:", err);
-        alert("حدث خطأ أثناء تعديل حالة الشهادة.");
+    setConfirmModal({
+      isOpen: true,
+      title: isRevoking ? "إبطال الشهادة" : "إعادة تفعيل الشهادة",
+      message: isRevoking 
+        ? "هل أنت متأكد من إبطال هذه الشهادة؟ لن تكون صالحة عند التحقق عبر الباركود." 
+        : "هل أنت متأكد من إعادة تفعيل الشهادة؟ ستعود للظهور كشهادة معتمدة.",
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          await updateDoc(doc(db, "certificates", docId), { status: newStatus });
+          setCertificates(certs => certs.map(c => c.id === docId ? { ...c, status: newStatus } : c));
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error("Error updating certificate status:", err);
+          alert("حدث خطأ أثناء تعديل حالة الشهادة.");
+        }
       }
-    }
+    });
   };
 
-  const handleDelete = async (docId: string) => {
-    if (confirm("هل أنت متأكد من حذف هذه الشهادة نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.")) {
-      try {
-        await deleteDoc(doc(db, "certificates", docId));
-        setCertificates(certs => certs.filter(c => c.id !== docId));
-      } catch (err) {
-        console.error("Error deleting certificate:", err);
-        alert("حدث خطأ أثناء حذف الشهادة.");
+  const handleDelete = (docId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "حذف الشهادة نهائياً",
+      message: "هل أنت متأكد من حذف هذه الشهادة نهائياً من قاعدة البيانات؟ هذا الإجراء لا يمكن التراجع عنه بأي شكل.",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "certificates", docId));
+          setCertificates(certs => certs.filter(c => c.id !== docId));
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error("Error deleting certificate:", err);
+          alert("حدث خطأ أثناء حذف الشهادة.");
+        }
       }
-    }
+    });
   };
 
   if (loading) {
@@ -231,7 +255,7 @@ export default function Dashboard() {
                   {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">الشركة المصدرة</th>}
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">تاريخ الإصدار</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">الحالة</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">إجراءات</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">إجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -257,7 +281,7 @@ export default function Dashboard() {
                         {cert.status === 'active' ? 'مفعلة' : 'مبطلة (ملغاة)'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-4">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center justify-center gap-4">
                       <button 
                         onClick={() => handleRevoke(cert.id, cert.status)}
                         className={`font-bold hover:underline ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
@@ -287,6 +311,41 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </main>
+
+      <AnimatePresence>
+        {confirmModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-white rounded-3xl p-8 max-w-md w-full relative z-10 shadow-2xl border border-gray-100">
+              <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${confirmModal.type === 'danger' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-2xl font-black text-gray-800 mb-3">{confirmModal.title}</h3>
+              <p className="text-gray-600 font-medium leading-relaxed mb-8">{confirmModal.message}</p>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={confirmModal.onConfirm}
+                  className={`flex-1 font-bold py-3 px-4 rounded-xl text-white transition-colors ${confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-700 shadow-md shadow-red-200' : 'bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-200'}`}
+                >
+                  تأكيد
+                </button>
+                <button 
+                  onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 font-bold py-3 px-4 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
