@@ -92,6 +92,15 @@ export default function CertificateView() {
     window.print();
   };
 
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      router.back();
+    } else {
+      window.close();
+      router.push('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -133,7 +142,7 @@ export default function CertificateView() {
         }
       `}} />
       <div className="w-full max-w-5xl mb-8 flex justify-between items-center">
-        <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+        <button onClick={handleBack} className="text-gray-600 hover:text-gray-900 flex items-center gap-2">
           <ArrowRight className="w-5 h-5" /> رجوع
         </button>
         <div className="flex gap-4">
