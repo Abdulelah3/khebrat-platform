@@ -763,8 +763,9 @@ export default function Home() {
               <button onClick={() => setShowDisclaimer(true)} className="text-sm text-white/80 hover:text-white transition-all hover:underline">إخلاء المسؤولية</button>
             </div>
           </div>
-          <div className="mt-6 pt-6" style={{ borderTop: "1px solid rgba(255,255,255,0.2)" }}>
-            <p className="text-center text-sm text-white/70">&copy; {new Date().getFullYear()} منصة خبرات - جميع الحقوق محفوظة.</p>
+          <div className="mt-6 pt-6 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderTop: "1px solid rgba(255,255,255,0.2)" }}>
+            <p className="text-sm text-white/70">&copy; {new Date().getFullYear()} منصة خبرات - جميع الحقوق محفوظة.</p>
+            <p className="text-sm text-white/70">تم التطوير بواسطة <span className="font-bold text-white">عبدالإله هاني بلخي</span></p>
           </div>
         </div>
       </footer>
