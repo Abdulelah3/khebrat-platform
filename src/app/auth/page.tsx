@@ -26,7 +26,7 @@ export default function AuthPage() {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
-        router.push("/dashboard");
+        router.push("/");
       } else {
         if (!companyName.trim()) {
           throw new Error("الرجاء إدخال اسم الشركة");
@@ -45,7 +45,7 @@ export default function AuthPage() {
           status: "active"
         });
 
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch (err: any) {
       console.error("Auth error:", err);
