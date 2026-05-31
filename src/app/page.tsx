@@ -773,7 +773,7 @@ export default function Home() {
 
         {/* ===== Certificate Preview ===== */}
         <div className="lg:col-span-8 flex flex-col items-center gap-4">
-          <h2 className="text-lg font-bold text-gray-700 self-start">👁️ معاينة مباشرة</h2>
+          <h2 className="text-lg font-bold text-gray-700 self-start">معاينة مباشرة</h2>
           <div className="w-full overflow-auto rounded-2xl shadow-inner p-6" style={{ backgroundColor: "#e2e8f0" }}>
             <div className="flex justify-center">
               <div ref={certRef} style={{
