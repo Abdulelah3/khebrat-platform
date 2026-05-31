@@ -247,14 +247,14 @@ export default function Dashboard() {
           </div>
           
           <div className="overflow-x-auto">
-            <table className="w-full text-right">
+            <table className="w-full text-center">
               <thead className="bg-slate-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">رقم الاعتماد</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">اسم الموظف</th>
-                  {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">الشركة المصدرة</th>}
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">تاريخ الإصدار</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">الحالة</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">رقم الاعتماد</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">اسم الموظف</th>
+                  {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">الشركة المصدرة</th>}
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">تاريخ الإصدار</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">الحالة</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">إجراءات</th>
                 </tr>
               </thead>
@@ -281,20 +281,22 @@ export default function Dashboard() {
                         {cert.status === 'active' ? 'مفعلة' : 'مبطلة (ملغاة)'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center justify-center gap-4">
-                      <button 
-                        onClick={() => handleRevoke(cert.id, cert.status)}
-                        className={`font-bold hover:underline ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
-                      >
-                        {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(cert.id)}
-                        className="text-gray-400 hover:text-red-600 transition-colors"
-                        title="حذف نهائي"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center justify-center gap-4">
+                        <button 
+                          onClick={() => handleRevoke(cert.id, cert.status)}
+                          className={`font-bold hover:underline ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
+                        >
+                          {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(cert.id)}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          title="حذف نهائي"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
