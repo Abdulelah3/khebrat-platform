@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type TabType = "data" | "design";
 
@@ -381,6 +382,9 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-1 text-xs py-2 px-3 rounded-lg transition-all hover:bg-white text-green-700 bg-white font-bold shadow-sm">
+              <LayoutDashboard className="w-4 h-4" /> لوحة التحكم
+            </Link>
             <button onClick={() => setShowTerms(true)} className="flex items-center gap-1 text-xs py-2 px-3 rounded-lg transition-all hover:bg-white/20" style={{ backgroundColor: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }}>
               <FileText className="w-4 h-4" /> الشروط والأحكام
             </button>

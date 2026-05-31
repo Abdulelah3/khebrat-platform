@@ -46,7 +46,8 @@ export default function Dashboard() {
             await loadCompanyData(u.uid);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'AbortError' || err.code === 'cancelled' || err.message?.includes('abort')) return;
         console.error("Error loading dashboard data:", err);
       } finally {
         setLoading(false);
@@ -57,32 +58,42 @@ export default function Dashboard() {
   }, [router]);
 
   const loadCompanyData = async (uid: string) => {
-    const q = query(collection(db, "certificates"), where("uid", "==", uid));
-    const snapshot = await getDocs(q);
-    const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Sort by createdAt descending
-    certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-    setCertificates(certs);
+    try {
+      const q = query(collection(db, "certificates"), where("uid", "==", uid));
+      const snapshot = await getDocs(q);
+      const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort by createdAt descending
+      certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      setCertificates(certs);
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.code === 'cancelled' || err.message?.includes('abort')) return;
+      console.error("Error loading company data:", err);
+    }
   };
 
   const loadAdminData = async () => {
-    // Load all certificates
-    const certsSnapshot = await getDocs(collection(db, "certificates"));
-    const certs = certsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-    setCertificates(certs);
+    try {
+      // Load all certificates
+      const certsSnapshot = await getDocs(collection(db, "certificates"));
+      const certs = certsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      setCertificates(certs);
 
-    // Load all users
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setAllUsers(usersList);
+      // Load all users
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllUsers(usersList);
 
-    // Calculate stats
-    setStats({
-      totalCerts: certs.length,
-      activeCerts: certs.filter((c: any) => c.status === "active").length,
-      totalCompanies: usersList.filter((u: any) => u.role === "company").length
-    });
+      // Calculate stats
+      setStats({
+        totalCerts: certs.length,
+        activeCerts: certs.filter((c: any) => c.status === "active").length,
+        totalCompanies: usersList.filter((u: any) => u.role === "company").length
+      });
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.code === 'cancelled' || err.message?.includes('abort')) return;
+      console.error("Error loading admin data:", err);
+    }
   };
 
   const handleLogout = async () => {
