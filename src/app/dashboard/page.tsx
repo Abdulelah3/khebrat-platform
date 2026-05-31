@@ -122,6 +122,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = async (docId: string) => {
+    if (confirm("هل أنت متأكد من حذف هذه الشهادة نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+      try {
+        await deleteDoc(doc(db, "certificates", docId));
+        setCertificates(certs => certs.filter(c => c.id !== docId));
+      } catch (err) {
+        console.error("Error deleting certificate:", err);
+        alert("حدث خطأ أثناء حذف الشهادة.");
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50" dir="rtl">
@@ -245,12 +257,19 @@ export default function Dashboard() {
                         {cert.status === 'active' ? 'مفعلة' : 'مبطلة (ملغاة)'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-4">
                       <button 
                         onClick={() => handleRevoke(cert.id, cert.status)}
                         className={`font-bold hover:underline ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
                       >
                         {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(cert.id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors"
+                        title="حذف نهائي"
+                      >
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
