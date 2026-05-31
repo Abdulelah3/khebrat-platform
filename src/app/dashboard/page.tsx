@@ -331,7 +331,7 @@ export default function Dashboard() {
                           {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
                         </button>
                         <Link 
-                          href={`/certificate/${cert.id}`}
+                          href={`/certificate/${cert.certId}`}
                           className="text-gray-400 hover:text-blue-600 transition-colors"
                           title="معاينة الشهادة"
                           target="_blank"

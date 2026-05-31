@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Image as ImageIcon, ArrowRight, Printer } from "lucide-react";
@@ -24,12 +24,18 @@ export default function CertificateView() {
     setOrigin(window.location.origin);
     const fetchCert = async () => {
       try {
-        const docRef = doc(db, "certificates", certId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setCertData(docSnap.data());
+        const q = query(collection(db, "certificates"), where("certId", "==", certId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setCertData(querySnapshot.docs[0].data());
         } else {
-          toast.error("الشهادة غير موجودة");
+          const docRef = doc(db, "certificates", certId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setCertData(docSnap.data());
+          } else {
+            toast.error("الشهادة غير موجودة");
+          }
         }
       } catch (err) {
         console.error(err);
@@ -186,12 +192,8 @@ export default function CertificateView() {
                 <h1 style={{ fontSize: `${design.headerFontSize}px`, fontWeight: "bold", color: design.strongColor }}>{formData.companyName || "اسم الشركة / الجهة"}</h1>
                 <p style={{ color: design.subtitleColor, fontSize: "13px", marginTop: "4px" }}>{design.certSubtitle}</p>
               </div>
-              {design.showLogo && (
-                design.logoImage ? (
-                  <img src={design.logoImage} alt="Logo" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
-                ) : (
-                  <div style={{ height: "70px", width: "70px", border: "2px dashed #d1d5db", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: "10px", borderRadius: "8px", textAlign: "center" }}>شعار<br />الجهة</div>
-                )
+              {design.showLogo && design.logoImage && (
+                <img src={design.logoImage} alt="Logo" style={{ height: "70px", width: "70px", objectFit: "contain" }} />
               )}
             </div>
 
@@ -257,9 +259,9 @@ export default function CertificateView() {
                   {design.sealImage ? (
                     <img src={design.sealImage} alt="Seal" style={{ height: "90px", width: "90px", objectFit: "contain" }} />
                   ) : (
-                    <div style={{ width: "90px", height: "90px", border: `3px double ${design.sealColor}`, borderRadius: "50%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "transparent" }}>
-                      <p style={{ color: design.sealColor, fontWeight: "bold", fontSize: "14px" }}>{design.sealText}</p>
-                      <p style={{ color: design.sealColor, fontSize: "10px", marginTop: "4px" }}>{design.sealSubText}</p>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      {design.sealText && <p style={{ color: design.subtitleColor, fontWeight: "bold", fontSize: "14px" }}>{design.sealText}</p>}
+                      {design.sealSubText && <p style={{ color: design.subtitleColor, fontSize: "10px", marginTop: "4px" }}>{design.sealSubText}</p>}
                     </div>
                   )}
                 </div>
