@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } 
 import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -111,9 +112,24 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-    await auth.signOut();
-    router.push("/auth");
+    try {
+      await auth.signOut();
+      router.push('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
+
+  const chartData = React.useMemo(() => {
+    const data: Record<string, number> = {};
+    certificates.forEach(cert => {
+      if (!cert.createdAt) return;
+      const date = new Date(cert.createdAt.toMillis());
+      const month = date.toLocaleString('ar-SA', { month: 'short', year: 'numeric' });
+      data[month] = (data[month] || 0) + 1;
+    });
+    return Object.entries(data).map(([name, count]) => ({ name, count })).reverse();
+  }, [certificates]);
 
   const handleRevoke = (docId: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "revoked" : "active";
@@ -233,6 +249,27 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500 font-bold mb-1">الشركات المسجلة</p>
                 <p className="text-3xl font-black text-gray-800">{stats.totalCompanies}</p>
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Analytics Chart */}
+        {certificates.length > 0 && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-8">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
+              <BarChart3 className="w-5 h-5 text-green-600" />
+              إحصائيات إصدار الشهادات
+            </h2>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} name="الشهادات الصادرة" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </motion.div>
         )}
