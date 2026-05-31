@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck, Eye } from "lucide-react";
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck, Eye, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -216,6 +216,44 @@ export default function Dashboard() {
   };
 
 
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === certificates.length - 1) return;
+    
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const cert1 = certificates[index];
+    const cert2 = certificates[targetIndex];
+    
+    let time1 = cert1.createdAt?.toMillis() || Date.now();
+    let time2 = cert2.createdAt?.toMillis() || Date.now();
+    
+    // Fallback if timestamps are identical
+    if (time1 === time2) {
+      time1 += direction === 'up' ? 1000 : -1000;
+    }
+
+    try {
+      const newTime1 = Timestamp.fromMillis(time2);
+      const newTime2 = Timestamp.fromMillis(time1);
+      
+      await Promise.all([
+        updateDoc(doc(db, "certificates", cert1.id), { createdAt: newTime1 }),
+        updateDoc(doc(db, "certificates", cert2.id), { createdAt: newTime2 })
+      ]);
+      
+      const newCerts = [...certificates];
+      newCerts[index] = { ...cert1, createdAt: newTime1 };
+      newCerts[targetIndex] = { ...cert2, createdAt: newTime2 };
+      
+      newCerts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      setCertificates(newCerts);
+      toast.success("تم الترتيب بنجاح");
+    } catch (error) {
+      console.error(error);
+      toast.error("حدث خطأ أثناء الترتيب");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50" dir="rtl">
@@ -390,10 +428,28 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center justify-center gap-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="flex flex-col gap-1 ml-2">
+                          <button 
+                            onClick={() => handleMove(certificates.indexOf(cert), 'up')}
+                            disabled={certificates.indexOf(cert) === 0}
+                            className="text-gray-400 hover:text-green-600 disabled:opacity-30 transition-colors"
+                            title="تحريك لأعلى"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleMove(certificates.indexOf(cert), 'down')}
+                            disabled={certificates.indexOf(cert) === certificates.length - 1}
+                            className="text-gray-400 hover:text-green-600 disabled:opacity-30 transition-colors"
+                            title="تحريك لأسفل"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
                         <button 
                           onClick={() => handleRevoke(cert.id, cert.status)}
-                          className={`font-bold hover:underline ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
+                          className={`font-bold hover:underline ml-2 ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
                         >
                           {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
                         </button>
