@@ -87,7 +87,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
             {!isLogin && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">اسم الجهة / الشركة</label>
