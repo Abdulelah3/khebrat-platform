@@ -166,7 +166,7 @@ export default function CertificateView() {
 
       <div className="w-full overflow-auto flex justify-center pb-10" dir="ltr">
         <div id="printable-cert" ref={certRef} style={{
-          width: "800px", minWidth: "800px", minHeight: "580px", backgroundColor: design.bgColor,
+          width: "800px", minHeight: "580px", backgroundColor: design.bgColor,
           position: "relative", overflow: "hidden",
           boxShadow: "0 10px 40px rgba(0,0,0,0.1)", borderRadius: "4px",
           padding: `${design.certPadding}px`, direction: "rtl",

@@ -777,7 +777,7 @@ export default function Home() {
           <div className="w-full overflow-auto rounded-2xl shadow-inner p-6" style={{ backgroundColor: "#e2e8f0" }}>
             <div className="flex justify-center">
               <div ref={certRef} style={{
-                width: "800px", minWidth: "800px", minHeight: "580px", backgroundColor: design.bgColor,
+                width: "800px", minHeight: "580px", backgroundColor: design.bgColor,
                 position: "relative", overflow: "hidden",
                 boxShadow: "0 10px 40px rgba(0,0,0,0.1)", borderRadius: "4px",
                 padding: `${design.certPadding}px`, direction: "rtl"
