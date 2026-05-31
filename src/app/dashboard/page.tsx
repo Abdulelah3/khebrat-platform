@@ -260,14 +260,14 @@ export default function Dashboard() {
               <BarChart3 className="w-5 h-5 text-green-600" />
               إحصائيات إصدار الشهادات
             </h2>
-            <div className="h-72 w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} name="الشهادات الصادرة" />
+                  <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} name="الشهادات الصادرة" barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
