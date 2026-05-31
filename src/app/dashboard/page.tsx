@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X } from "lucide-react";
+import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -187,6 +187,9 @@ export default function Dashboard() {
               <span className="text-sm font-bold text-gray-800">{userData?.companyName || user?.email}</span>
               <span className="text-xs text-gray-500">{isAdmin ? "مدير النظام" : "حساب شركة"}</span>
             </div>
+            <Link href="/verify" className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+              <ShieldCheck className="w-4 h-4" /> صفحة التحقق
+            </Link>
             <Link href="/" className="bg-green-100 text-green-700 hover:bg-green-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
               <Plus className="w-4 h-4" /> إصدار شهادة جديدة
             </Link>
