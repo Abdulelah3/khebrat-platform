@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard, Mail } from "lucide-react";
+import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard, Mail, FileSpreadsheet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as XLSX from "xlsx";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -42,6 +43,8 @@ export default function Home() {
   const [certId, setCertId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isBulking, setIsBulking] = useState(false);
   const [extraFields, setExtraFields] = useState<ExtraField[]>([]);
   const [origin, setOrigin] = useState("https://khebrat.vercel.app");
   
@@ -233,6 +236,86 @@ export default function Home() {
       toast.error("حدث خطأ أثناء التوثيق! تأكد من اتصالك.");
     } finally {
       setIsAuthenticating(false);
+    }
+  };
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!agreed) {
+      setShowDisclaimer(true);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsBulking(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        toast.error("الملف فارغ");
+        setIsBulking(false);
+        return;
+      }
+
+      if (window.confirm(`تم العثور على ${jsonData.length} موظف. هل أنت متأكد من إصدار الشهادات لهم جميعاً؟`)) {
+        toast.loading(`جاري إصدار ${jsonData.length} شهادة...`, { id: 'bulk' });
+        let successCount = 0;
+        
+        for (const row of jsonData as any[]) {
+          const newCertId = generateCertId();
+          const email = row["الايميل"] || row["البريد"] || row["email"] || row["Email"] || "";
+          const empName = row["الاسم"] || row["name"] || row["Name"] || "";
+          const compName = formData.companyName || user?.companyName || "الشركة";
+          
+          await addDoc(collection(db, "certificates"), {
+            ...formData, 
+            employeeName: empName,
+            employeeId: String(row["رقم الهوية"] || row["id"] || row["ID"] || ""),
+            employeeEmail: email,
+            jobTitle: row["المسمى الوظيفي"] || row["job"] || row["Job"] || formData.jobTitle || "",
+            companyName: compName,
+            certId: newCertId,
+            uid: user?.uid || "",
+            createdAt: serverTimestamp(),
+            status: "active",
+            design: design,
+            extraFields: extraFields
+          });
+          
+          if (email) {
+            try {
+              await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: email,
+                  employeeName: empName,
+                  companyName: compName,
+                  certId: newCertId,
+                  url: `${window.location.origin}/certificate/${newCertId}`
+                })
+              });
+            } catch (err) {
+              console.error("Bulk Email Error", err);
+            }
+          }
+          successCount++;
+        }
+        
+        toast.success(`تم إصدار ${successCount} شهادة بنجاح!`, { id: 'bulk' });
+      }
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+      toast.error("حدث خطأ أثناء قراءة الملف");
+    } finally {
+      setIsBulking(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -652,11 +735,19 @@ export default function Home() {
 
             {/* ===== Action Buttons (Always visible) ===== */}
             <div className="pt-5 mt-5 border-t border-gray-200 space-y-3">
-              <button onClick={handleAuthenticate} disabled={isAuthenticating || isAuthenticated}
+              <button onClick={handleAuthenticate} disabled={isAuthenticating || isAuthenticated || isBulking}
                 className={`w-full font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md ${isAuthenticated ? 'bg-green-50 text-green-700 cursor-not-allowed border-2 border-green-200' : 'bg-yellow-400 text-gray-900 hover:bg-yellow-500 hover:shadow-lg'}`}
                 style={isAuthenticated ? {} : { border: "2px solid #eab308" }}>
                 {isAuthenticating ? <span className="animate-pulse">جاري التوثيق...</span> : isAuthenticated ? <><CheckCircle2 className="w-5 h-5" /> تم توثيق الشهادة بنجاح ({certId})</> : <><ShieldAlert className="w-5 h-5" /> توثيق الشهادة رسمياً</>}
               </button>
+
+              <div className="flex gap-3">
+                <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleBulkUpload} className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} disabled={isBulking || isAuthenticating}
+                  className="w-full text-blue-700 bg-blue-50 border-2 border-blue-200 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm hover:bg-blue-100">
+                  {isBulking ? <span className="animate-pulse">جاري الإصدار الجماعي...</span> : <><FileSpreadsheet className="w-5 h-5" /> إصدار جماعي (Excel)</>}
+                </button>
+              </div>
 
               <div className="flex gap-3">
                 <button onClick={() => handleGenerate('pdf')} disabled={isGenerating}
