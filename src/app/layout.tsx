@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: "أداة احترافية لإصدار شهادات الخبرة وتوثيقها بباركود لضمان المصداقية.",
 };
 
+import FullscreenToggle from "@/components/FullscreenToggle";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,6 +41,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <FullscreenToggle />
       </body>
     </html>
   );
