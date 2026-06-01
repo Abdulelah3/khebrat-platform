@@ -4,11 +4,12 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
-import { Loader2, LogOut, BarChart3, Users, FileCheck, ShieldAlert, Trash2, Shield, Plus, Building, AlertTriangle, X, ShieldCheck, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, LogOut, Search, ShieldCheck, User, Users, Check, Trash2, Mail, Plus, BarChart3, FileCheck, ShieldAlert, Shield, Building, AlertTriangle, X, Eye } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import toast from "react-hot-toast";
+import FullscreenToggle from "@/components/FullscreenToggle";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -279,6 +280,7 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-4">
+            <FullscreenToggle variant="dark" />
             <div className="hidden md:flex flex-col items-end mr-4">
               <span className="text-sm font-bold text-gray-800">{userData?.companyName || user?.email}</span>
               <span className="text-xs text-gray-500">{isAdmin ? "مدير النظام" : "حساب شركة"}</span>

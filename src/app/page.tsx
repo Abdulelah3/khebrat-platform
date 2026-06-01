@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Image as ImageIcon, ShieldAlert, CheckCircle2, Building2, User, Briefcase, Calendar, X, FileText, Palette, Type, Layout, Eye, EyeOff, Plus, Trash2, LayoutDashboard, Mail, FileSpreadsheet } from "lucide-react";
+import FullscreenToggle from "@/components/FullscreenToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import { toPng } from "html-to-image";
@@ -499,6 +500,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <FullscreenToggle variant="light" />
             <Link href="/dashboard" className="flex items-center gap-1 text-xs py-2 px-3 rounded-lg transition-all hover:bg-white text-green-700 bg-white font-bold shadow-sm">
               <LayoutDashboard className="w-4 h-4" /> لوحة التحكم
             </Link>
