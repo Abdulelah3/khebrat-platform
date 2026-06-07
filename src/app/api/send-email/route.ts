@@ -20,7 +20,6 @@ export async function POST(req: Request) {
 
     // Secure the API route: Fetch certificate data from Firestore to prevent spam abuse
     const projectId = 'experience-platform-d0019';
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/certificates`;
     
     // We query the collection to find the document with certId == certId
     const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
