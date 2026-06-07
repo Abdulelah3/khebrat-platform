@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import toast from "react-hot-toast";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { CertificateFormSchema } from "../lib/validations";
 import { AppUser, DesignSettings, ExtraField, FormData } from "../types";
