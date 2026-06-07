@@ -12,14 +12,56 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Resend API Key is missing. Email skipped.' }, { status: 400 });
     }
 
-    const { email, employeeName, companyName, certId, url } = await req.json();
+    const { certId, url } = await req.json();
 
-    if (!email || !employeeName || !certId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!certId) {
+      return NextResponse.json({ error: 'Missing certId' }, { status: 400 });
+    }
+
+    // Secure the API route: Fetch certificate data from Firestore to prevent spam abuse
+    const projectId = 'experience-platform-d0019';
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/certificates`;
+    
+    // We query the collection to find the document with certId == certId
+    const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+    const queryResponse = await fetch(queryUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'certificates' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'certId' },
+              op: 'EQUAL',
+              value: { stringValue: certId }
+            }
+          },
+          limit: 1
+        }
+      })
+    });
+
+    if (!queryResponse.ok) {
+      return NextResponse.json({ error: 'Failed to verify certificate' }, { status: 500 });
+    }
+
+    const queryData = await queryResponse.json();
+    if (!queryData || !queryData[0] || !queryData[0].document) {
+      return NextResponse.json({ error: 'Certificate not found or invalid' }, { status: 404 });
+    }
+
+    const docFields = queryData[0].document.fields;
+    const email = docFields.employeeEmail?.stringValue;
+    const employeeName = docFields.employeeName?.stringValue;
+    const companyName = docFields.companyName?.stringValue || "الشركة";
+
+    if (!email) {
+      return NextResponse.json({ error: 'No email associated with this certificate' }, { status: 400 });
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'Khebrat Platform <onboarding@resend.dev>', // Free tier Resend limit
+      from: 'Khebrat Platform <onboarding@resend.dev>',
       to: [email],
       subject: `مبروك! شهادة خبرتك من ${companyName} أصبحت جاهزة 🎉`,
       html: `
@@ -54,6 +96,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (error) {
+    console.error("API error", error);
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
   }
 }

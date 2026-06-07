@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { Lock, Mail, Building, ArrowRight, Loader2 } from "lucide-react";
+import { Lock, Mail, Building, ArrowRight, Loader2, User, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -13,7 +13,10 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accountType, setAccountType] = useState<"company" | "individual">("company");
   const [companyName, setCompanyName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [nationalId, setNationalId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -28,9 +31,14 @@ export default function AuthPage() {
         await signInWithEmailAndPassword(auth, email, password);
         router.push("/");
       } else {
-        if (!companyName.trim()) {
+        if (accountType === "company" && !companyName.trim()) {
           throw new Error("الرجاء إدخال اسم الشركة");
         }
+        if (accountType === "individual") {
+          if (!fullName.trim()) throw new Error("الرجاء إدخال الاسم الثلاثي");
+          if (!nationalId.trim()) throw new Error("الرجاء إدخال رقم الهوية أو الإقامة");
+        }
+
         // Register
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -39,8 +47,10 @@ export default function AuthPage() {
         await setDoc(doc(db, "users", user.uid), {
           uid: user.uid,
           email: user.email,
-          companyName: companyName,
-          role: "company", // Default role
+          role: accountType,
+          companyName: accountType === "company" ? companyName : fullName,
+          fullName: accountType === "individual" ? fullName : null,
+          nationalId: accountType === "individual" ? nationalId : null,
           createdAt: serverTimestamp(),
           status: "active"
         });
@@ -74,9 +84,9 @@ export default function AuthPage() {
         <div className="bg-green-600 p-8 text-center text-white relative">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "20px 20px" }}></div>
           <Lock className="w-16 h-16 text-white mx-auto mb-4 relative z-10" />
-          <h1 className="text-3xl font-bold relative z-10">{isLogin ? "تسجيل الدخول" : "إنشاء حساب شركة"}</h1>
+          <h1 className="text-3xl font-bold relative z-10">{isLogin ? "تسجيل الدخول" : "إنشاء حساب جديد"}</h1>
           <p className="text-green-100 mt-2 relative z-10 text-sm">
-            {isLogin ? "مرحباً بك مجدداً في منصة خبرات" : "انضم لمنصة خبرات وابدأ في إصدار الشهادات"}
+            {isLogin ? "مرحباً بك مجدداً في منصة خبرات" : "انضم لمنصة خبرات كفرد أو كشركة"}
           </p>
         </div>
 
@@ -89,20 +99,58 @@ export default function AuthPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
             {!isLogin && (
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">اسم الجهة / الشركة</label>
-                <div className="relative">
-                  <Building className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="text" 
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="مثال: شركة أبل"
-                    className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                    required={!isLogin}
-                  />
+              <>
+                <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                  <button type="button" onClick={() => setAccountType("company")} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${accountType === "company" ? "bg-white text-green-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                    حساب شركة
+                  </button>
+                  <button type="button" onClick={() => setAccountType("individual")} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${accountType === "individual" ? "bg-white text-green-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                    حساب أفراد
+                  </button>
                 </div>
-              </div>
+
+                {accountType === "company" ? (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">اسم الجهة / الشركة</label>
+                    <div className="relative">
+                      <Building className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input 
+                        type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="مثال: شركة أبل"
+                        className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                        required={!isLogin && accountType === "company"}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">الاسم الثلاثي</label>
+                      <div className="relative">
+                        <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input 
+                          type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                          placeholder="الاسم كاملاً"
+                          className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                          required={!isLogin && accountType === "individual"}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">رقم الهوية / الإقامة</label>
+                      <div className="relative">
+                        <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input 
+                          type="text" value={nationalId} onChange={(e) => setNationalId(e.target.value)}
+                          placeholder="1000000000"
+                          className="w-full pr-12 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                          required={!isLogin && accountType === "individual"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <div>
@@ -155,7 +203,7 @@ export default function AuthPage() {
                 onClick={() => { setIsLogin(!isLogin); setError(""); }} 
                 className="text-green-600 font-bold mr-2 hover:underline"
               >
-                {isLogin ? "سجل كشركة جديدة" : "تسجيل الدخول"}
+                {isLogin ? "سجل حساب جديد" : "تسجيل الدخول"}
               </button>
             </p>
           </div>

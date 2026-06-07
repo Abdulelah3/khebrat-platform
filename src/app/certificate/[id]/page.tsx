@@ -61,14 +61,33 @@ export default function CertificateView() {
     setIsGenerating(true);
 
     try {
-      const dataUrl = await toPng(certRef.current, {
+      const el = certRef.current;
+      const originalPosition = el.style.position;
+      const originalTop = el.style.top;
+      const originalLeft = el.style.left;
+      const originalTransform = el.style.transform;
+      const originalMargin = el.style.margin;
+
+      // Hack to fix html-to-image crop issue by forcing top-left viewport alignment
+      el.style.position = "fixed";
+      el.style.top = "0";
+      el.style.left = "0";
+      el.style.margin = "0";
+      el.style.transform = "none";
+
+      const dataUrl = await toPng(el, {
         quality: 1,
         pixelRatio: 3,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-        }
+        width: 800,
+        height: el.offsetHeight || 580,
       });
+
+      // Restore original styles
+      el.style.position = originalPosition;
+      el.style.top = originalTop;
+      el.style.left = originalLeft;
+      el.style.margin = originalMargin;
+      el.style.transform = originalTransform;
 
       if (type === 'image') {
         const link = document.createElement("a");
@@ -131,20 +150,34 @@ export default function CertificateView() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
+          @page { size: landscape; margin: 0; }
+          body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           body * {
             visibility: hidden;
+          }
+          .print-wrapper {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            visibility: visible !important;
+            z-index: 9999;
           }
           #printable-cert, #printable-cert * {
             visibility: visible;
           }
           #printable-cert {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0 !important;
+            box-shadow: none !important;
+            transform: scale(0.95) !important;
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
           }
-          @page { size: landscape; margin: 0; }
         }
       `}} />
       <div className="w-full max-w-5xl mb-8 flex justify-between items-center">
@@ -165,13 +198,14 @@ export default function CertificateView() {
       </div>
 
       <div className="w-full overflow-auto flex justify-center pb-10" dir="ltr">
-        <div id="printable-cert" ref={certRef} style={{
-          width: "800px", minHeight: "580px", backgroundColor: design.bgColor,
-          position: "relative", overflow: "hidden",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.1)", borderRadius: "4px",
-          padding: `${design.certPadding}px`, direction: "rtl",
-          margin: "0 auto"
-        }}>
+        <div className="print-wrapper">
+          <div id="printable-cert" ref={certRef} style={{
+            width: "800px", minHeight: "580px", backgroundColor: design.bgColor,
+            position: "relative", overflow: "hidden",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.1)", borderRadius: "4px",
+            padding: `${design.certPadding}px`, direction: "rtl",
+            margin: "0 auto"
+          }}>
           {/* Pattern */}
           {design.showPattern && (
             <div style={{ backgroundImage: `radial-gradient(${design.borderColor} 0.5px, transparent 0.5px)`, backgroundSize: "20px 20px", opacity: 0.03, position: "absolute", inset: 0, pointerEvents: "none" }}></div>
@@ -266,6 +300,7 @@ export default function CertificateView() {
                   )}
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

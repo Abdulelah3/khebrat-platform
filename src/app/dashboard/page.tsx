@@ -4,22 +4,26 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2, LogOut, Search, ShieldCheck, User, Users, Check, Trash2, Mail, Plus, BarChart3, FileCheck, ShieldAlert, Shield, Building, AlertTriangle, X, Eye } from "lucide-react";
+import { Loader2, LogOut, ShieldCheck, Plus, AlertTriangle, X } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import toast from "react-hot-toast";
 import FullscreenToggle from "@/components/FullscreenToggle";
 
+import { AppUser, Certificate } from "../../types";
+import StatsCards from "@/components/dashboard/StatsCards";
+import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
+import CertificatesTable from "@/components/dashboard/CertificatesTable";
+
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [userData, setUserData] = useState<any>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [userData, setUserData] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [certificates, setCertificates] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCerts, setSelectedCerts] = useState<string[]>([]);
   
   // Admin only states
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<AppUser[]>([]);
   const [stats, setStats] = useState({
     totalCerts: 0,
     activeCerts: 0,
@@ -52,7 +56,6 @@ export default function Dashboard() {
       setUser(u);
       
       try {
-        // Fetch user document
         const userDoc = await getDoc(doc(db, "users", u.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
@@ -79,9 +82,8 @@ export default function Dashboard() {
     try {
       const q = query(collection(db, "certificates"), where("uid", "==", uid));
       const snapshot = await getDocs(q);
-      const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Sort by createdAt descending
-      certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Certificate));
+      certs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setCertificates(certs);
     } catch (err: any) {
       if (err.name === 'AbortError' || err.code === 'cancelled' || err.message?.includes('abort')) return;
@@ -91,22 +93,19 @@ export default function Dashboard() {
 
   const loadAdminData = async () => {
     try {
-      // Load all certificates
       const certsSnapshot = await getDocs(collection(db, "certificates"));
-      const certs = certsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      certs.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      const certs = certsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Certificate));
+      certs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setCertificates(certs);
 
-      // Load all users
       const usersSnapshot = await getDocs(collection(db, "users"));
-      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppUser));
       setAllUsers(usersList);
 
-      // Calculate stats
       setStats({
         totalCerts: certs.length,
-        activeCerts: certs.filter((c: any) => c.status === "active").length,
-        totalCompanies: usersList.filter((u: any) => u.role === "company").length
+        activeCerts: certs.filter(c => c.status === "active").length,
+        totalCompanies: usersList.filter(u => u.role === "company" || u.role === "individual").length
       });
     } catch (err: any) {
       if (err.name === 'AbortError' || err.code === 'cancelled' || err.message?.includes('abort')) return;
@@ -179,7 +178,7 @@ export default function Dashboard() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedCerts(certificates.map(c => c.id));
+      setSelectedCerts(certificates.map(c => c.id || ''));
     } else {
       setSelectedCerts([]);
     }
@@ -204,7 +203,7 @@ export default function Dashboard() {
           const deletePromises = selectedCerts.map(id => deleteDoc(doc(db, "certificates", id)));
           await Promise.all(deletePromises);
           
-          setCertificates(certs => certs.filter(c => !selectedCerts.includes(c.id)));
+          setCertificates(certs => certs.filter(c => !selectedCerts.includes(c.id || '')));
           setSelectedCerts([]);
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
           toast.success("تم حذف الشهادات المحددة بنجاح");
@@ -215,7 +214,6 @@ export default function Dashboard() {
       }
     });
   };
-
 
   const handleMove = async (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return;
@@ -228,7 +226,6 @@ export default function Dashboard() {
     let time1 = cert1.createdAt?.toMillis() || Date.now();
     let time2 = cert2.createdAt?.toMillis() || Date.now();
     
-    // Fallback if timestamps are identical
     if (time1 === time2) {
       time1 += direction === 'up' ? 1000 : -1000;
     }
@@ -238,15 +235,15 @@ export default function Dashboard() {
       const newTime2 = Timestamp.fromMillis(time1);
       
       await Promise.all([
-        updateDoc(doc(db, "certificates", cert1.id), { createdAt: newTime1 }),
-        updateDoc(doc(db, "certificates", cert2.id), { createdAt: newTime2 })
+        updateDoc(doc(db, "certificates", cert1.id || ''), { createdAt: newTime1 }),
+        updateDoc(doc(db, "certificates", cert2.id || ''), { createdAt: newTime2 })
       ]);
       
       const newCerts = [...certificates];
       newCerts[index] = { ...cert1, createdAt: newTime1 };
       newCerts[targetIndex] = { ...cert2, createdAt: newTime2 };
       
-      newCerts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+      newCerts.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setCertificates(newCerts);
       toast.success("تم الترتيب بنجاح");
     } catch (error) {
@@ -265,6 +262,7 @@ export default function Dashboard() {
   }
 
   const isAdmin = userData?.role === "admin";
+  const userRoleText = userData?.role === "individual" ? "حساب أفراد" : (isAdmin ? "مدير النظام" : "حساب شركة");
 
   return (
     <div className="min-h-screen bg-slate-50" dir="rtl">
@@ -275,7 +273,7 @@ export default function Dashboard() {
             <Link href="/" className="text-2xl font-black text-green-600 tracking-tight">خـبـرات</Link>
             <div className="h-6 w-px bg-gray-300"></div>
             <span className="text-gray-600 font-bold">
-              {isAdmin ? "لوحة تحكم الإدارة" : "لوحة تحكم الشركة"}
+              {isAdmin ? "لوحة تحكم الإدارة" : "لوحة التحكم"}
             </span>
           </div>
           
@@ -283,7 +281,7 @@ export default function Dashboard() {
             <FullscreenToggle variant="dark" />
             <div className="hidden md:flex flex-col items-end mr-4">
               <span className="text-sm font-bold text-gray-800">{userData?.companyName || user?.email}</span>
-              <span className="text-xs text-gray-500">{isAdmin ? "مدير النظام" : "حساب شركة"}</span>
+              <span className="text-xs text-gray-500">{userRoleText}</span>
             </div>
             <Link href="/verify" className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
               <ShieldCheck className="w-4 h-4" /> صفحة التحقق
@@ -300,192 +298,21 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Admin Stats */}
-        {isAdmin && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                <FileCheck className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-bold mb-1">إجمالي الشهادات المصدرة</p>
-                <p className="text-3xl font-black text-gray-800">{stats.totalCerts}</p>
-              </div>
-            </div>
-            
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shrink-0">
-                <Shield className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-bold mb-1">الشهادات الفعالة</p>
-                <p className="text-3xl font-black text-gray-800">{stats.activeCerts}</p>
-              </div>
-            </div>
+        {isAdmin && <StatsCards {...stats} />}
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shrink-0">
-                <Building className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-bold mb-1">الشركات المسجلة</p>
-                <p className="text-3xl font-black text-gray-800">{stats.totalCompanies}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        <AnalyticsChart chartData={chartData} />
 
-        {/* Analytics Chart */}
-        {certificates.length > 0 && (
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-8">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
-              <BarChart3 className="w-5 h-5 text-green-600" />
-              إحصائيات إصدار الشهادات
-            </h2>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="count" fill="#16a34a" radius={[6, 6, 0, 0]} name="الشهادات الصادرة" barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Certificates Table */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-green-600" />
-              {isAdmin ? "سجل جميع الشهادات" : "سجل الشهادات الصادرة"}
-            </h2>
-            <div className="flex items-center gap-4">
-              {selectedCerts.length > 0 && (
-                <button 
-                  onClick={handleBulkDelete}
-                  className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" /> حذف المحدد ({selectedCerts.length})
-                </button>
-              )}
-              <div className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold">
-                الإجمالي: {certificates.length}
-              </div>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-center">
-              <thead className="bg-slate-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 w-10 text-center">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
-                      checked={certificates.length > 0 && selectedCerts.length === certificates.length}
-                      onChange={handleSelectAll}
-                    />
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">رقم الاعتماد</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">اسم الموظف</th>
-                  {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">الشركة المصدرة</th>}
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">تاريخ الإصدار</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">الحالة</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {certificates.map((cert) => (
-                  <tr key={cert.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-center">
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
-                        checked={selectedCerts.includes(cert.id)}
-                        onChange={() => handleSelect(cert.id)}
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">{cert.certId}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-gray-800">{cert.employeeName}</div>
-                      <div className="text-xs text-gray-500">{cert.employeeId}</div>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{cert.companyName}</div>
-                      </td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {cert.createdAt?.toDate ? cert.createdAt.toDate().toLocaleDateString('ar-SA') : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${cert.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {cert.status === 'active' ? 'مفعلة' : 'مبطلة (ملغاة)'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="flex flex-col gap-1 ml-2">
-                          <button 
-                            onClick={() => handleMove(certificates.indexOf(cert), 'up')}
-                            disabled={certificates.indexOf(cert) === 0}
-                            className="text-gray-400 hover:text-green-600 disabled:opacity-30 transition-colors"
-                            title="تحريك لأعلى"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleMove(certificates.indexOf(cert), 'down')}
-                            disabled={certificates.indexOf(cert) === certificates.length - 1}
-                            className="text-gray-400 hover:text-green-600 disabled:opacity-30 transition-colors"
-                            title="تحريك لأسفل"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <button 
-                          onClick={() => handleRevoke(cert.id, cert.status)}
-                          className={`font-bold hover:underline ml-2 ${cert.status === 'active' ? 'text-red-600' : 'text-green-600'}`}
-                        >
-                          {cert.status === 'active' ? 'إبطال الشهادة' : 'إعادة التفعيل'}
-                        </button>
-                        <Link 
-                          href={`/certificate/${cert.certId}`}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
-                          title="معاينة الشهادة"
-                          target="_blank"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </Link>
-                        <button 
-                          onClick={() => handleDelete(cert.id)}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
-                          title="حذف نهائي"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                
-                {certificates.length === 0 && (
-                  <tr>
-                    <td colSpan={isAdmin ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
-                      لا يوجد شهادات مصدرة حتى الآن.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+        <CertificatesTable
+          isAdmin={isAdmin}
+          certificates={certificates}
+          selectedCerts={selectedCerts}
+          handleSelectAll={handleSelectAll}
+          handleSelect={handleSelect}
+          handleBulkDelete={handleBulkDelete}
+          handleMove={handleMove}
+          handleRevoke={handleRevoke}
+          handleDelete={handleDelete}
+        />
       </main>
 
       <AnimatePresence>
