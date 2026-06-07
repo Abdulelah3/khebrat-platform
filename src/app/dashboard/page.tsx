@@ -53,7 +53,7 @@ export default function Dashboard() {
         return;
       }
       
-      setUser(u);
+      setUser(u as unknown as AppUser);
       
       try {
         const userDoc = await getDoc(doc(db, "users", u.uid));

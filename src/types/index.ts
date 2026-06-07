@@ -69,7 +69,7 @@ export interface Certificate extends FormData {
 export interface AppUser {
   id?: string;
   uid?: string;
-  email?: string;
+  email?: string | null;
   companyName?: string;
   role?: "admin" | "company" | "individual";
   fullName?: string;
